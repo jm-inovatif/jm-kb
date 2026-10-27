@@ -10,7 +10,7 @@
   --sea:#061222; --land:#11233A; --coast:#4FD1FF; --hi:#4FD1FF; --lo:#123A5A;
   --warn-bg:#2A2108; --warn-ink:#F7D774; --sel:#FFE14D;
   --r1:#00C8FF; --r2:#00E676; --r3:#B6F000; --r4:#FFE500; --r5:#FF9800; --r6:#FF3D00; --r7:#E6007E;
-  --g0:#16304D; --g1:#2A5C8A; --g2:#F2C94C; --g3:#FF7A2F; --g4:#FF2E63; --pd:#FF3355; --px:#3D8BFF; --jm:#FFC93C; --gv:#5CE1E6; --ps:#7CFF6B; --pm:#B58CFF; --ok:#7CFF6B;
+  --pg0:#1B3A2E; --pg1:#3DFFA0; --pgb:#0F7A4A; --g0:#16304D; --g1:#2A5C8A; --g2:#F2C94C; --g3:#FF7A2F; --g4:#FF2E63; --pd:#FF3355; --px:#3D8BFF; --jm:#FFC93C; --gv:#5CE1E6; --ps:#7CFF6B; --pm:#B58CFF; --ok:#7CFF6B;
   --t1:#2E6FD8; --t2:#3CC3E0; --t3:#F7E35A; --t4:#F59E2B; --t5:#E5383B;
   --m1:#5B8EF0; --m2:#2DBFB2; --m3:#F28C3E; --m4:#E0628F; --m5:#9C7AE8; --m6:#7FC14D; --m7:#D2AA3A; --m8:#E2604F; --m9:#8C9CB4; --m0:#56637A;
   --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
@@ -58,6 +58,9 @@ a.gmap{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:
 .shape:hover{stroke:var(--ink);stroke-width:1.6}
 .shape.sel{stroke:var(--sel);stroke-width:2.6}
 .outline{fill:none;stroke:var(--coast);stroke-opacity:.75;stroke-width:1.1;filter:drop-shadow(0 0 2px rgba(79,209,255,.6));vector-effect:non-scaling-stroke;pointer-events:none}
+.qb{display:flex;gap:10px;align-items:flex-end;height:64px;padding:4px 0}.qb>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;justify-content:flex-end;height:100%}.qb i{display:block;width:70%;background:var(--pg1);border-radius:3px 3px 0 0;opacity:.85}.qb b{font:700 12px var(--f-num)}.qb small{font-size:10.5px;color:var(--muted)}
+.up{color:#2ECC71;font-weight:800}.dn{color:#FF5C5C;font-weight:800}.fl{color:var(--muted);font-weight:700}
+table.evt{width:100%;border-collapse:collapse;font-size:12px}table.evt th{text-align:left;font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--line,rgba(127,127,127,.3));padding:4px 3px}table.evt td{padding:5px 3px;border-bottom:1px solid var(--line,rgba(127,127,127,.15));vertical-align:top}table.evt td:nth-child(n+3),table.evt th:nth-child(n+3){text-align:center;width:24px;font-family:var(--f-num)}table.evt td:first-child{white-space:nowrap;font-family:var(--f-num);color:var(--muted)}table.evt small{display:block;color:var(--muted);font-size:10.5px}
 .badge circle{stroke:var(--bg);stroke-width:1.5px}
 .badge.st circle{fill:rgba(5,13,24,.82)!important;stroke-width:2px}
 .grat{fill:none;stroke:rgba(79,209,255,.09);stroke-width:.6;vector-effect:non-scaling-stroke;pointer-events:none}
@@ -229,6 +232,7 @@ h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
         <button type="button" data-m="model" aria-pressed="false">Model teratas</button>
         <button type="button" data-m="dens" aria-pressed="false">Kepadatan (suhu)</button>
         <button type="button" data-m="target" aria-pressed="false">⚔ Operasi conquer</button>
+        <button type="button" data-m="prog" aria-pressed="false">📈 Progress aktiviti</button>
       </div>
     </div>
     <div class="grp"><span class="lbl">Tanda</span><span class="toggles"><label><input type="checkbox" id="tgP" checked> <span style="color:var(--pd);font-weight:700">●</span> Perodua</label><label><input type="checkbox" id="tgX" checked> <span style="color:var(--px);font-weight:700">●</span> Proton</label><label><input type="checkbox" id="tgG" checked> <span style="color:var(--gv)">◆</span> Kerajaan</label><label><input type="checkbox" id="tgM" checked> <span style="color:var(--ps)">■</span> Pasar</label><label><input type="checkbox" id="tgR" checked> 🗺️ Peta jalan</label></span></div>
@@ -281,10 +285,11 @@ const mcol=m=>css('--m'+(MSLOT[m]||0));
 const STH={KTN:212,TRG:185,PHG:140,JHR:28,SGR:275,KUL:330,PJY:300,NSN:50,MLK:2,PRK:95,KDH:65,PLS:160,PNG:245,SBH:15,SWK:115,LBN:350};
 const stCol=(st,l)=>d3.hsl(STH[st]??0,.62,l??.47);
 
-let G,DS,POP,TG;
+let G,DS,POP,TG,PG={D:{}};
 try{
   const [s,d,u,sept,cust,pop,tg]=await Promise.all(['g_state.json','g_district.json','g_dun.json','data.json','cust.json','pop.json','target.json'].map(f=>fetch(f).then(r=>{if(!r.ok)throw new Error(f);return r.json()})));
   G={negeri:s,daerah:d,dun:u}; POP=pop; TG=tg;
+  try{const r=await fetch('progress.json');if(r.ok)PG=await r.json()}catch(_){}
   DS={
     cust:{label:cust.label,gLabel:'Tahun',unit:'customer',rows:cust.rows.map(r=>({st:r[0],d:r[1],n:r[2],m:r[3],g:r[4],src:r[5]}))},
     sept:{label:sept.sumber,gLabel:'SA',unit:'unit',rows:sept.rows.map(r=>({st:r[0],d:'',n:'',m:r[2],g:r[1],v:r[3],b:r[4]}))}
@@ -373,6 +378,7 @@ function zoomTo(feats,pad=0.85){
 const tip=document.getElementById('tip');
 let AG=new Map();
 function tipHTML(f){
+  if(mode==='prog'){const g=PG.D[key[level](f)];return `<b>${nameOf[level](f)}</b>`+(g?`<div class="k">Aktiviti <i>${g.n}</i></div><div class="k">Prospek <i>${g.p}</i></div><div class="k">Booking <i>${g.b}</i></div><div class="k">Registration <i>${g.r}</i></div><div class="k">MS Proton <i>${msTxt(g)}</i></div>`:'<div class="k">Belum ada aktiviti luar</div>')}
   if(mode==='target'){const t=tgOf(f);if(t){const dd=level==='dun'?TG.D[t.d]||{}:t;return `<b>${nameOf[level](f)}</b><div class="k">Skor sasaran <i>${t.score}/100</i></div><div class="k">Status <i>${t.tier}</i></div><div class="k">Sektor kerajaan <i>${t.gov} lokasi</i></div><div class="k">Perodua <i>${t.per||0} cawangan</i></div><div class="k">Proton <i>${t.pro||0} outlet</i></div>`+(dd.inc?`<div class="k">Pendapatan penengah <i>RM${fmt(dd.inc)}</i></div>`:'')+(dd.dens?`<div class="k">Kepadatan <i>${fmt(dd.dens)}/km²</i></div>`:'')}}
   const a=AG.get(key[level](f)), p=popOf(f), U=DS[ds].unit;
   let h=`<b>${nameOf[level](f)}</b><div class="k">${U[0].toUpperCase()+U.slice(1)} <i>${a?fmt(a.n):0}</i></div>`;
@@ -381,9 +387,10 @@ function tipHTML(f){
   return h;
 }
 
-function legend(max,dmax,models){
+function legend(max,dmax,models,pMax){
   const L=document.getElementById('legend'), U=DS[ds].unit;
-  if(mode==='target') L.innerHTML=`<span class="lbl">Skor sasaran conquer · Kelantan</span><div class="ramp" style="background:linear-gradient(90deg,${['--g0','--g1','--g2','--g3','--g4'].map(css).join(',')})"></div><div class="ramp-l"><span>Pantau</span><span>Kedua</span><span>Utama</span></div><div class="sw"><span><i class="dot" style="background:var(--jm)"></i>JM (kita)</span><span><i class="dot" style="background:var(--px)"></i>Proton</span><span><i class="dot" style="background:var(--pd)"></i>Perodua</span><span><i class="dot" style="background:var(--gv);transform:rotate(45deg)"></i>Kerajaan</span><span><i class="dot" style="border:2px solid var(--g4);background:none;border-radius:50%"></i>Sasaran utama (OP)</span><span><i class="dot" style="background:none;border-top:2px dashed var(--jm);border-radius:0;height:0;width:14px"></i>Laluan dari markas</span><span><i class="dot" style="background:var(--ps);border-radius:2px"></i>Pasar pagi/minggu</span><span><i class="dot" style="background:rgba(124,255,107,.35);border:1px solid var(--ps);border-radius:2px"></i>Pasar harian</span><span><i class="dot" style="background:var(--pm);border-radius:2px"></i>Pasar malam</span></div>`;
+  if(mode==='prog') L.innerHTML=`<span class="lbl">Booking dari aktiviti luar · ${PG.tempoh||''}</span><div class="ramp" style="background:linear-gradient(90deg,${css('--pg0')},${css('--pg1')})"></div><div class="ramp-l"><span>0</span><span>${fmt(pMax)}</span></div><div class="sw"><span>Bulatan = booking · label = bil aktiviti</span><span>Kelabu = belum ada aktiviti</span></div>`;
+  else if(mode==='target') L.innerHTML=`<span class="lbl">Skor sasaran conquer · Kelantan</span><div class="ramp" style="background:linear-gradient(90deg,${['--g0','--g1','--g2','--g3','--g4'].map(css).join(',')})"></div><div class="ramp-l"><span>Pantau</span><span>Kedua</span><span>Utama</span></div><div class="sw"><span><i class="dot" style="background:var(--jm)"></i>JM (kita)</span><span><i class="dot" style="background:var(--px)"></i>Proton</span><span><i class="dot" style="background:var(--pd)"></i>Perodua</span><span><i class="dot" style="background:var(--gv);transform:rotate(45deg)"></i>Kerajaan</span><span><i class="dot" style="border:2px solid var(--g4);background:none;border-radius:50%"></i>Sasaran utama (OP)</span><span><i class="dot" style="background:none;border-top:2px dashed var(--jm);border-radius:0;height:0;width:14px"></i>Laluan dari markas</span><span><i class="dot" style="background:var(--ps);border-radius:2px"></i>Pasar pagi/minggu</span><span><i class="dot" style="background:rgba(124,255,107,.35);border:1px solid var(--ps);border-radius:2px"></i>Pasar harian</span><span><i class="dot" style="background:var(--pm);border-radius:2px"></i>Pasar malam</span></div>`;
   else if(mode==='radar') L.innerHTML=`<span class="lbl">Intensiti customer · radar</span><div class="ramp" style="background:linear-gradient(90deg,${['--r1','--r2','--r3','--r4','--r5','--r6','--r7'].map(css).join(',')})"></div><div class="ramp-l"><span>Rendah</span><span>Sederhana</span><span>Lebat</span><span>${fmt(max)}</span></div>`;
   else if(mode==='cust'&&level==='negeri') L.innerHTML=`<span class="lbl">Setiap negeri warna sendiri · lebih pekat = lebih ramai</span><div class="sw">${models.st.map(k=>`<span><i class="dot" style="background:${stCol(k).formatHex()}"></i>${NAMA[k]}</span>`).join('')}</div>`;
   else if(mode==='cust') L.innerHTML=`<span class="lbl">${U[0].toUpperCase()+U.slice(1)} ikut ${LV[level]} · gelap = paling ramai</span><div class="ramp" style="background:linear-gradient(90deg,${css('--lo')},${css('--hi')})"></div><div class="ramp-l"><span>1</span><span>${fmt(max)}</span></div>`;
@@ -400,6 +407,7 @@ function opsMap(lv){const src=lv==='daerah'?TG.D:TG.N;const m=new Map();Object.e
 function draw(){
   if(mode==='dens'&&level!=='daerah')setLevel('daerah');
   if(mode==='target'&&level==='negeri')setLevel('daerah');
+  if(mode==='prog'&&level!=='daerah')setLevel('daerah');
   const rows=filt(), feats=G[level].features; AG=agg(rows);
   const max=Math.max(1,...[...AG.values()].map(a=>a.n));
   const land=css('--land');
@@ -407,8 +415,10 @@ function draw(){
   const dv=Object.values(POP.d).map(p=>p.dens), dext=[d3.min(dv),d3.max(dv)];
   const dCol=d3.scaleSequentialLog(TEMP()).domain(dext); const rCol=RAMP(); const tOf=n=>Math.sqrt(n/max);
   const gCol=TGC();
+  const pMax=Math.max(1,...Object.values(PG.D).map(g=>g.b)), pCol=d3.scaleSequentialSqrt(d3.interpolateRgb(css('--pg0'),css('--pg1'))).domain([0,pMax]);
   const fillOf=f=>{const k=key[level](f),a=AG.get(k);
     if(mode==='target'){const t=tgOf(f);return t?gCol(t.score/100):land}
+    if(mode==='prog'){const g=PG.D[k];if(!g)return land;const c=d3.color(pCol(g.b));c.opacity=.35+.55*Math.sqrt(g.b/pMax);return c.formatRgb()}
     if(mode==='radar'){if(!a)return land;const c=d3.color(rCol(tOf(a.n)));c.opacity=.16+.22*tOf(a.n);return c.formatRgb()}
     if(level==='negeri'&&mode==='cust'){if(!a)return land;const c=stCol(k);c.opacity=.3+.7*Math.sqrt(a.n/max);return c.formatRgb()}
     if(mode==='dens'){const p=POP.d[k];return p?dCol(p.dens):land}
@@ -417,7 +427,7 @@ function draw(){
     return cCol(a.n)};
   const tops=[...new Set([...AG.values()].map(a=>a.top[0][0]))].sort((x,y)=>(MSLOT[x]||99)-(MSLOT[y]||99));
   tops.st=[...AG.keys()].filter(k=>STH[k]!=null).sort((a,b)=>AG.get(b).n-AG.get(a).n);
-  legend(max,dext,tops);
+  legend(max,dext,tops,pMax);
 
   const sh=gShape.selectAll('path').data(feats,key[level]);
   sh.exit().remove();
@@ -444,15 +454,15 @@ function draw(){
     .each(f=>{if(!BW.has(f)){const b=path.bounds(f);BW.set(f,b[1][0]-b[0][0])}})
     .attr('x',f=>path.centroid(f)[0]).attr('y',f=>path.centroid(f)[1]).text(nameOf[level]);
 
-  const bd=(mode==='dens'||mode==='target')?[]:feats.map(f=>({f,a:AG.get(key[level](f)),c:path.centroid(f)})).filter(d=>d.a&&isFinite(d.c[0]));
-  const rS=d3.scaleSqrt().domain([1,max]).range([10,24]);
+  const bd=(mode==='dens'||mode==='target')?[]:mode==='prog'?feats.map(f=>{const g=PG.D[key[level](f)];return {f,a:g?{n:g.b,pg:g,top:[['']]}:null,c:path.centroid(f)}}).filter(d=>d.a&&isFinite(d.c[0])):feats.map(f=>({f,a:AG.get(key[level](f)),c:path.centroid(f)})).filter(d=>d.a&&isFinite(d.c[0]));
+  const rS=mode==='prog'?d3.scaleSqrt().domain([0,pMax]).range([10,24]):d3.scaleSqrt().domain([1,max]).range([10,24]);
   const g=gBadge.selectAll('g.badge').data(bd,d=>key[level](d.f));
   g.exit().remove();
   const ge=g.enter().append('g').attr('class','badge');ge.append('circle');ge.append('text').attr('class','n');ge.append('text').attr('class','mt');
   ge.merge(g).classed('st',mode==='radar').each(function(d){const s=d3.select(this),r=rS(d.a.n)*(mode==='radar'?.85:1);
-    s.select('circle').attr('r',r).style('stroke',mode==='radar'?rCol(tOf(d.a.n)):null).style('fill',level==='negeri'&&mode==='cust'?stCol(key.negeri(d.f),.34).formatHex():mcol(d.a.top[0][0]));
+    s.select('circle').attr('r',r).style('stroke',mode==='radar'?rCol(tOf(d.a.n)):null).style('fill',mode==='prog'?css('--pgb'):level==='negeri'&&mode==='cust'?stCol(key.negeri(d.f),.34).formatHex():mcol(d.a.top[0][0]));
     s.select('.n').text(fmt(d.a.n));
-    s.select('.mt').attr('y',r+3).text(d.a.top[0][0]);});
+    s.select('.mt').attr('y',r+3).text(mode==='prog'?d.a.pg.n+' aktiviti':d.a.top[0][0]);});
   // target rings on top-5 areas
   const tg=mode==='target'?feats.map(f=>({f,t:tgOf(f),c:path.centroid(f)})).filter(d=>d.t&&isFinite(d.c[0])&&d.t.tier==='Sasaran utama'):[];
   const gt=gTgt.selectAll('g.tgt').data(tg,d=>key[level](d.f));gt.exit().remove();
@@ -466,7 +476,7 @@ function draw(){
   const rt=mode==='target'&&level==='daerah'&&HQ.length?tg.map(d=>{const h=HQ.slice().sort((a,b)=>Math.hypot(a[0]-d.c[0],a[1]-d.c[1])-Math.hypot(b[0]-d.c[0],b[1]-d.c[1]))[0];return {d,h}}).filter(x=>Math.hypot(x.h[0]-x.d.c[0],x.h[1]-x.d.c[1])>4):[];
   gRoute.selectAll('path.route').data(rt,x=>key[level](x.d.f)).join('path').attr('class','route').attr('d',({d,h})=>{const [x0,y0]=h,[x1,y1]=d.c,mx=(x0+x1)/2,my=(y0+y1)/2,dx=x1-x0,dy=y1-y0;return `M${x0},${y0}Q${mx-dy*.18},${my+dx*.18} ${x1},${y1}`});
   // pins: Perodua + kerajaan
-  const pins=[...(tgX.checked?TG.pro.map(o=>({o,k:o.jm?'j':'x'})):[]),...(tgP.checked?TG.per.map(o=>({o,k:'p'})):[]),...(tgG.checked?TG.gov.map(o=>({o,k:'g'})):[]),...(tgM.checked&&TG.pasar?TG.pasar.map(o=>({o,k:'m'})):[])].map(d=>({...d,p:proj([d.o.lon,d.o.lat])}));
+  const pins=mode==='prog'?[]:[...(tgX.checked?TG.pro.map(o=>({o,k:o.jm?'j':'x'})):[]),...(tgP.checked?TG.per.map(o=>({o,k:'p'})):[]),...(tgG.checked?TG.gov.map(o=>({o,k:'g'})):[]),...(tgM.checked&&TG.pasar?TG.pasar.map(o=>({o,k:'m'})):[])].map(d=>({...d,p:proj([d.o.lon,d.o.lat])}));
   const gp=gPin.selectAll('g.pin').data(pins,d=>d.k+d.o.n);gp.exit().remove();
   const gpe=gp.enter().append('g').attr('class','pin');
   gpe.each(function(d){const s=d3.select(this);
@@ -492,6 +502,7 @@ function draw(){
   gPin.selectAll('g.pin').sort((a,b)=>({m:-1,g:0,x:1,p:2,j:3}[a.k])-({m:-1,g:0,x:1,p:2,j:3}[b.k]));
   rescale(d3.zoomTransform(svg.node()).k);
   if(mode==='target'){panelTarget();return}
+  if(mode==='prog'){panelProg();return}
   panel(rows);
 
 }
@@ -687,6 +698,40 @@ function panelTarget(){
   document.getElementById('crumb').textContent=['Kelantan',sel?nameOf[lv](sel):null].filter(Boolean).join(' › ');
 }
 
+
+const QN=['Q1','Q2','Q3','Okt'];
+const msTxt=g=>g.ms0!=null&&g.ms1!=null?`${g.ms0}% → ${g.ms1}% (${(g.ms1-g.ms0>=0?'+':'')+(g.ms1-g.ms0).toFixed(1)})`:'menunggu data';
+const qBars=g=>{const mx=Math.max(1,...QN.map(q=>g.q[q].b));return `<div class="qb">${QN.map(q=>`<div><i style="height:${Math.max(3,g.q[q].b/mx*34)}px"></i><b>${g.q[q].b}</b><small>${q}</small></div>`).join('')}</div>`};
+const arrow=g=>{const a=g.q.Q2.b,b=g.q.Q3.b;return b>a?'<span class="up">▲ naik</span>':b<a?'<span class="dn">▼ turun</span>':'<span class="fl">► sama</span>'};
+function panelProg(){
+  const p=document.getElementById('panel'), E=Object.entries(PG.D).sort((a,b)=>b[1].n-a[1].n);
+  const sel=selected&&selected.level==='daerah'?selected.f:null;
+  const T=E.reduce((t,[,g])=>({n:t.n+g.n,p:t.p+g.p,b:t.b+g.b,r:t.r+g.r}),{n:0,p:0,b:0,r:0});
+  const nm=k=>{const f=featByKey.daerah.get(k);return f?nameOf.daerah(f):k};
+  let h='';
+  if(!sel){
+    h+=`<div><h2>📈 Progress kawasan aktiviti luar</h2><div class="sub">Roadshow · canvassing · mall · localisation · CSR · JM KB + JM GM · ${PG.tempoh}</div></div>
+    <div class="tiles"><div class="tile"><small>Aktiviti</small><b>${T.n}</b><em>${E.length} daerah</em></div><div class="tile"><small>Prospek</small><b>${fmt(T.p)}</b><em>ikut DMS</em></div><div class="tile"><small>Booking</small><b>${T.b}</b><em>${T.p?Math.round(T.b/T.p*100):0}% dari prospek</em></div></div>
+    <div><h3>Ikut daerah · klik untuk detail</h3><div class="cards">${E.map(([k,g])=>`<div class="card" data-l="daerah" data-k="${k}" tabindex="0"><div class="t"><b>${nm(k)}</b><span>${g.b} bkg</span></div><div class="chips"><span><b>${g.n}</b> aktiviti</span><span><b>${g.p}</b> prospek</span><span><b>${g.r}</b> reg</span><span>${g.out.join(' / ')}</span><span>Q2→Q3 ${arrow(g)}</span></div><div class="chips"><span>MS Proton: <b>${msTxt(g)}</b></span></div></div>`).join('')}</div></div>`;
+  }else{
+    const k=key.daerah(sel), g=PG.D[k];
+    if(!g)h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">Belum ada aktiviti luar direkod dalam ${PG.tempoh}. Kawasan untuk dibuka.</div></div>`;
+    else{
+      h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">${g.out.join(' / ')} · ${PG.tempoh}</div></div>
+      <div class="tiles"><div class="tile"><small>Aktiviti</small><b>${g.n}</b><em>${g.p} prospek</em></div><div class="tile"><small>Booking</small><b>${g.b}</b><em>${g.p?Math.round(g.b/g.p*100):0}% conversion</em></div><div class="tile"><small>Registration</small><b>${g.r}</b><em>setakat ni</em></div></div>
+      <div><h3>Booking ikut suku tahun · Q2→Q3 ${arrow(g)}</h3>${qBars(g)}</div>
+      <div class="note"><b>Market share Proton:</b> ${msTxt(g)}${g.ms0==null?' — akan dikemas kini bila data MS daerah dari state office diterima.':''}</div>
+      <div><h3>Senarai aktiviti (${g.ev.length})</h3><table class="evt"><thead><tr><th>Tarikh</th><th>Aktiviti</th><th title="Prospek">P</th><th title="Booking">B</th><th title="Registration">R</th></tr></thead><tbody>${g.ev.slice().reverse().map(e=>`<tr><td>${e[0].slice(8,10)}/${e[0].slice(5,7)}</td><td>${e[3]}<small>${e[2]} · ${e[1]}${e[4]&&e[4].toUpperCase()!==e[3].toUpperCase()?' · '+e[4]:''}</small></td><td>${e[5]||'–'}</td><td>${e[6]||'–'}</td><td>${e[7]||'–'}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+    h+='<button type="button" class="btn" id="clr">Kembali ke semua daerah</button>';
+  }
+  h+=`<div class="src">Sumber: kalendar event JM KB & JM GM, prospek/booking/registration ikut DMS Outlet Event List, dikemas kini ${PG.tarikh}. Tidak termasuk event showroom & test drive. Registration masih meningkat kerana booking Q3/Okt dalam proses delivery. Market share rasmi ikut daerah dari state office/HQ.</div>`;
+  p.innerHTML=h;
+  p.querySelectorAll('.card').forEach(el=>{const go=()=>{const f=featByKey.daerah.get(el.dataset.k);if(!f)return;selected={level:'daerah',f};zoomTo([f],0.7);draw()};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter')go()})});
+  const c=document.getElementById('clr');if(c)c.onclick=()=>{selected=null;zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);draw()};
+  document.getElementById('crumb').textContent=['Progress aktiviti',sel?nameOf.daerah(sel):null].filter(Boolean).join(' › ');
+}
+
 function setLevel(l){
   level=l;document.querySelectorAll('#lvl button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.l===l));
   gShape.selectAll('path').remove();gLab.selectAll('text').remove();gBadge.selectAll('g').remove();gRadar.selectAll('g').remove();gTgt.selectAll('g').remove();gRoute.selectAll('path').remove();
@@ -694,7 +739,7 @@ function setLevel(l){
 }
 document.querySelectorAll('#lvl button').forEach(b=>b.addEventListener('click',()=>{if((mode==='dens'&&b.dataset.l!=='daerah')||(mode==='target'&&b.dataset.l==='negeri'))setMode('radar');setLevel(b.dataset.l);draw()}));
 function setMode(m){mode=m;document.querySelectorAll('#mode button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m))}
-document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>{const was=mode;setMode(b.dataset.m);if(b.dataset.m==='target'&&ds!=='cust'){fds.value='cust';ds='cust';setDS()}draw();if(b.dataset.m==='target'&&was!=='target')zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9)}));
+document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>{const was=mode;setMode(b.dataset.m);if(b.dataset.m==='prog'&&was!=='prog'){selected=null;setLevel('daerah');draw();zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);return}if(b.dataset.m==='target'&&ds!=='cust'){fds.value='cust';ds='cust';setDS()}draw();if(b.dataset.m==='target'&&was!=='target')zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9)}));
 tgP.onchange=tgX.onchange=tgG.onchange=tgM.onchange=()=>{gPin.selectAll('g').remove();draw()};
 tgR.onchange=drawTiles;
 fds.onchange=()=>{ds=fds.value;setDS();selected=null;if(ds==='sept'&&level!=='negeri'){setLevel('negeri');if(mode==='dens')setMode('radar')}draw()};
