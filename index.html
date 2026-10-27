@@ -378,7 +378,7 @@ function zoomTo(feats,pad=0.85){
 const tip=document.getElementById('tip');
 let AG=new Map();
 function tipHTML(f){
-  if(mode==='prog'){const g=PG.D[key[level](f)];return `<b>${nameOf[level](f)}</b>`+(g?`<div class="k">Aktiviti <i>${g.n}</i></div><div class="k">Prospek <i>${g.p}</i></div><div class="k">Booking <i>${g.b}</i></div><div class="k">Registration <i>${g.r}</i></div><div class="k">MS Proton <i>${msTxt(g)}</i></div>`:'<div class="k">Belum ada aktiviti luar</div>')}
+  if(mode==='prog'){const g=PG.D[key[level](f)];return `<b>${nameOf[level](f)}</b>`+(g?`<div class="k">Aktiviti <i>${g.n}</i></div><div class="k">Prospek <i>${g.p}</i></div><div class="k">Booking <i>${g.b}</i></div><div class="k">Registration <i>${g.r}</i></div><div class="k">MS Proton <i>${msTxt(g)}</i></div>`:'<div class="k">Belum ada aktiviti luar</div>')+(incOf(key[level](f))?`<div class="k">Pendapatan purata <i>${incTxt(key[level](f))}/bln</i></div><div class="k">Pendapatan penengah <i>RM${fmt(incOf(key[level](f))[3])}</i></div>`:'')}
   if(mode==='target'){const t=tgOf(f);if(t){const dd=level==='dun'?TG.D[t.d]||{}:t;return `<b>${nameOf[level](f)}</b><div class="k">Skor sasaran <i>${t.score}/100</i></div><div class="k">Status <i>${t.tier}</i></div><div class="k">Sektor kerajaan <i>${t.gov} lokasi</i></div><div class="k">Perodua <i>${t.per||0} cawangan</i></div><div class="k">Proton <i>${t.pro||0} outlet</i></div>`+(dd.inc?`<div class="k">Pendapatan penengah <i>RM${fmt(dd.inc)}</i></div>`:'')+(dd.dens?`<div class="k">Kepadatan <i>${fmt(dd.dens)}/km²</i></div>`:'')}}
   const a=AG.get(key[level](f)), p=popOf(f), U=DS[ds].unit;
   let h=`<b>${nameOf[level](f)}</b><div class="k">${U[0].toUpperCase()+U.slice(1)} <i>${a?fmt(a.n):0}</i></div>`;
@@ -700,6 +700,10 @@ function panelTarget(){
 
 
 const QN=['Q1','Q2','Q3','Okt'];
+const incOf=k=>(PG.inc||{})[k];
+const incTxt=k=>{const v=incOf(k);return v?`RM${fmt(v[2])}`:'—'};
+const incChg=v=>((v[2]-v[0])/v[0]*100);
+const incRank=k=>'#'+(Object.entries(PG.inc).sort((a,b)=>b[1][2]-a[1][2]).findIndex(x=>x[0]===k)+1);
 const msTxt=g=>g.ms0!=null&&g.ms1!=null?`${g.ms0}% → ${g.ms1}% (${(g.ms1-g.ms0>=0?'+':'')+(g.ms1-g.ms0).toFixed(1)})`:'menunggu data';
 const qBars=g=>{const mx=Math.max(1,...QN.map(q=>g.q[q].b));return `<div class="qb">${QN.map(q=>`<div><i style="height:${Math.max(3,g.q[q].b/mx*34)}px"></i><b>${g.q[q].b}</b><small>${q}</small></div>`).join('')}</div>`};
 const arrow=g=>{const a=g.q.Q2.b,b=g.q.Q3.b;return b>a?'<span class="up">▲ naik</span>':b<a?'<span class="dn">▼ turun</span>':'<span class="fl">► sama</span>'};
@@ -712,20 +716,21 @@ function panelProg(){
   if(!sel){
     h+=`<div><h2>📈 Progress kawasan aktiviti luar</h2><div class="sub">Roadshow · canvassing · mall · localisation · CSR · JM KB + JM GM · ${PG.tempoh}</div></div>
     <div class="tiles"><div class="tile"><small>Aktiviti</small><b>${T.n}</b><em>${E.length} daerah</em></div><div class="tile"><small>Prospek</small><b>${fmt(T.p)}</b><em>ikut DMS</em></div><div class="tile"><small>Booking</small><b>${T.b}</b><em>${T.p?Math.round(T.b/T.p*100):0}% dari prospek</em></div></div>
-    <div><h3>Ikut daerah · klik untuk detail</h3><div class="cards">${E.map(([k,g])=>`<div class="card" data-l="daerah" data-k="${k}" tabindex="0"><div class="t"><b>${nm(k)}</b><span>${g.b} bkg</span></div><div class="chips"><span><b>${g.n}</b> aktiviti</span><span><b>${g.p}</b> prospek</span><span><b>${g.r}</b> reg</span><span>${g.out.join(' / ')}</span><span>Q2→Q3 ${arrow(g)}</span></div><div class="chips"><span>MS Proton: <b>${msTxt(g)}</b></span></div></div>`).join('')}</div></div>`;
+    <div><h3>Ikut daerah · klik untuk detail</h3><div class="cards">${E.map(([k,g])=>`<div class="card" data-l="daerah" data-k="${k}" tabindex="0"><div class="t"><b>${nm(k)}</b><span>${g.b} bkg</span></div><div class="chips"><span><b>${g.n}</b> aktiviti</span><span><b>${g.p}</b> prospek</span><span><b>${g.r}</b> reg</span><span>${g.out.join(' / ')}</span><span>Q2→Q3 ${arrow(g)}</span></div><div class="chips"><span>💰 Purata isi rumah <b>${incTxt(k)}</b>/bln</span><span>MS Proton: <b>${msTxt(g)}</b></span></div></div>`).join('')}</div></div>`;
   }else{
     const k=key.daerah(sel), g=PG.D[k];
-    if(!g)h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">Belum ada aktiviti luar direkod dalam ${PG.tempoh}. Kawasan untuk dibuka.</div></div>`;
+    if(!g)h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">Belum ada aktiviti luar direkod dalam ${PG.tempoh}. Kawasan untuk dibuka.</div></div>`+(incOf(k)?`<div class="tiles"><div class="tile"><small>Pendapatan purata 2024</small><b>RM${fmt(incOf(k)[2])}</b><em>isi rumah / bulan</em></div><div class="tile"><small>Penengah 2024</small><b>RM${fmt(incOf(k)[3])}</b><em>DOSM</em></div></div>`:'');
     else{
       h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">${g.out.join(' / ')} · ${PG.tempoh}</div></div>
       <div class="tiles"><div class="tile"><small>Aktiviti</small><b>${g.n}</b><em>${g.p} prospek</em></div><div class="tile"><small>Booking</small><b>${g.b}</b><em>${g.p?Math.round(g.b/g.p*100):0}% conversion</em></div><div class="tile"><small>Registration</small><b>${g.r}</b><em>setakat ni</em></div></div>
       <div><h3>Booking ikut suku tahun · Q2→Q3 ${arrow(g)}</h3>${qBars(g)}</div>
+      ${incOf(k)?`<div><h3>Pendapatan isi rumah bulanan · DOSM</h3><div class="tiles"><div class="tile"><small>Purata 2024</small><b>RM${fmt(incOf(k)[2])}</b><em>${incChg(incOf(k))>=0?'▲':'▼'} ${Math.abs(incChg(incOf(k))).toFixed(1)}% dari 2022 (RM${fmt(incOf(k)[0])})</em></div><div class="tile"><small>Penengah 2024</small><b>RM${fmt(incOf(k)[3])}</b><em>separuh isi rumah bawah paras ni</em></div><div class="tile"><small>Kedudukan</small><b>${incRank(k)}</b><em>daripada ${Object.keys(PG.inc).length} daerah</em></div></div></div>`:''}
       <div class="note"><b>Market share Proton:</b> ${msTxt(g)}${g.ms0==null?' — akan dikemas kini bila data MS daerah dari state office diterima.':''}</div>
       <div><h3>Senarai aktiviti (${g.ev.length})</h3><table class="evt"><thead><tr><th>Tarikh</th><th>Aktiviti</th><th title="Prospek">P</th><th title="Booking">B</th><th title="Registration">R</th></tr></thead><tbody>${g.ev.slice().reverse().map(e=>`<tr><td>${e[0].slice(8,10)}/${e[0].slice(5,7)}</td><td>${e[3]}<small>${e[2]} · ${e[1]}${e[4]&&e[4].toUpperCase()!==e[3].toUpperCase()?' · '+e[4]:''}</small></td><td>${e[5]||'–'}</td><td>${e[6]||'–'}</td><td>${e[7]||'–'}</td></tr>`).join('')}</tbody></table></div>`;
     }
     h+='<button type="button" class="btn" id="clr">Kembali ke semua daerah</button>';
   }
-  h+=`<div class="src">Sumber: kalendar event JM KB & JM GM, prospek/booking/registration ikut DMS Outlet Event List, dikemas kini ${PG.tarikh}. Tidak termasuk event showroom & test drive. Registration masih meningkat kerana booking Q3/Okt dalam proses delivery. Market share rasmi ikut daerah dari state office/HQ.</div>`;
+  h+=`<div class="src">Sumber: kalendar event JM KB & JM GM, prospek/booking/registration ikut DMS Outlet Event List, dikemas kini ${PG.tarikh}. Tidak termasuk event showroom & test drive. Registration masih meningkat kerana booking Q3/Okt dalam proses delivery. Market share rasmi ikut daerah dari state office/HQ. Pendapatan: ${PG.incSrc||'DOSM'}.</div>`;
   p.innerHTML=h;
   p.querySelectorAll('.card').forEach(el=>{const go=()=>{const f=featByKey.daerah.get(el.dataset.k);if(!f)return;selected={level:'daerah',f};zoomTo([f],0.7);draw()};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter')go()})});
   const c=document.getElementById('clr');if(c)c.onclick=()=>{selected=null;zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);draw()};
