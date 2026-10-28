@@ -59,6 +59,7 @@ a.gmap{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:
 .shape.sel{stroke:var(--sel);stroke-width:2.6}
 .outline{fill:none;stroke:var(--coast);stroke-opacity:.75;stroke-width:1.1;filter:drop-shadow(0 0 2px rgba(79,209,255,.6));vector-effect:non-scaling-stroke;pointer-events:none}
 .qb{display:flex;gap:10px;align-items:flex-end;height:64px;padding:4px 0}.qb>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;justify-content:flex-end;height:100%}.qb i{display:block;width:70%;background:var(--pg1);border-radius:3px 3px 0 0;opacity:.85}.qb b{font:700 12px var(--f-num)}.qb small{font-size:10.5px;color:var(--muted)}
+.fb{display:flex;flex-direction:column;gap:2px;margin:4px 0}.fb i{display:block;height:5px;border-radius:3px}
 .up{color:#2ECC71;font-weight:800}.dn{color:#FF5C5C;font-weight:800}.fl{color:var(--muted);font-weight:700}
 table.evt{width:100%;border-collapse:collapse;font-size:12px}table.evt th{text-align:left;font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--line,rgba(127,127,127,.3));padding:4px 3px}table.evt td{padding:5px 3px;border-bottom:1px solid var(--line,rgba(127,127,127,.15));vertical-align:top}table.evt td:nth-child(n+3),table.evt th:nth-child(n+3){text-align:center;width:24px;font-family:var(--f-num)}table.evt td:first-child{white-space:nowrap;font-family:var(--f-num);color:var(--muted)}table.evt small{display:block;color:var(--muted);font-size:10.5px}
 .badge circle{stroke:var(--bg);stroke-width:1.5px}
@@ -233,6 +234,7 @@ h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
         <button type="button" data-m="dens" aria-pressed="false">Kepadatan (suhu)</button>
         <button type="button" data-m="target" aria-pressed="false">⚔ Operasi conquer</button>
         <button type="button" data-m="prog" aria-pressed="false">📈 Progress aktiviti</button>
+        <button type="button" data-m="fun" aria-pressed="false">🎯 Funnel YTD</button>
       </div>
     </div>
     <div class="grp"><span class="lbl">Tanda</span><span class="toggles"><label><input type="checkbox" id="tgP" checked> <span style="color:var(--pd);font-weight:700">●</span> Perodua</label><label><input type="checkbox" id="tgX" checked> <span style="color:var(--px);font-weight:700">●</span> Proton</label><label><input type="checkbox" id="tgG" checked> <span style="color:var(--gv)">◆</span> Kerajaan</label><label><input type="checkbox" id="tgM" checked> <span style="color:var(--ps)">■</span> Pasar</label><label><input type="checkbox" id="tgR" checked> 🗺️ Peta jalan</label></span></div>
@@ -285,11 +287,12 @@ const mcol=m=>css('--m'+(MSLOT[m]||0));
 const STH={KTN:212,TRG:185,PHG:140,JHR:28,SGR:275,KUL:330,PJY:300,NSN:50,MLK:2,PRK:95,KDH:65,PLS:160,PNG:245,SBH:15,SWK:115,LBN:350};
 const stCol=(st,l)=>d3.hsl(STH[st]??0,.62,l??.47);
 
-let G,DS,POP,TG,PG={D:{}};
+let G,DS,POP,TG,PG={D:{}},FN={D:{},tot:{}};
 try{
   const [s,d,u,sept,cust,pop,tg]=await Promise.all(['g_state.json','g_district.json','g_dun.json','data.json','cust.json','pop.json','target.json'].map(f=>fetch(f).then(r=>{if(!r.ok)throw new Error(f);return r.json()})));
   G={negeri:s,daerah:d,dun:u}; POP=pop; TG=tg;
   try{const r=await fetch('progress.json');if(r.ok)PG=await r.json()}catch(_){}
+  try{const r=await fetch('funnel.json');if(r.ok)FN=await r.json()}catch(_){}
   DS={
     cust:{label:cust.label,gLabel:'Tahun',unit:'customer',rows:cust.rows.map(r=>({st:r[0],d:r[1],n:r[2],m:r[3],g:r[4],src:r[5]}))},
     sept:{label:sept.sumber,gLabel:'SA',unit:'unit',rows:sept.rows.map(r=>({st:r[0],d:'',n:'',m:r[2],g:r[1],v:r[3],b:r[4]}))}
@@ -378,6 +381,7 @@ function zoomTo(feats,pad=0.85){
 const tip=document.getElementById('tip');
 let AG=new Map();
 function tipHTML(f){
+  if(mode==='fun'){const g=FN.D[key[level](f)];return `<b>${nameOf[level](f)}</b>`+(g?`<div class="k">Prospek <i>${fmt(g.p)}</i></div><div class="k">Booking <i>${fmt(g.b)}</i></div><div class="k">Registration <i>${fmt(g.r)}</i></div><div class="k">Bandar teratas <i>${g.towns.slice(0,2).map(t=>t[0]+' '+t[1]).join(', ')}</i></div>`:'<div class="k">Tiada customer dikesan</div>')}
   if(mode==='prog'){const g=PG.D[key[level](f)];return `<b>${nameOf[level](f)}</b>`+(g?`<div class="k">Aktiviti <i>${g.n}</i></div><div class="k">Prospek <i>${g.p}</i></div><div class="k">Booking <i>${g.b}</i></div><div class="k">Registration <i>${g.r}</i></div><div class="k">MS Proton <i>${msTxt(g)}</i></div>`:'<div class="k">Belum ada aktiviti luar</div>')+(incOf(key[level](f))?`<div class="k">Pendapatan purata <i>${incTxt(key[level](f))}/bln</i></div><div class="k">Pendapatan penengah <i>RM${fmt(incOf(key[level](f))[3])}</i></div>`:'')}
   if(mode==='target'){const t=tgOf(f);if(t){const dd=level==='dun'?TG.D[t.d]||{}:t;return `<b>${nameOf[level](f)}</b><div class="k">Skor sasaran <i>${t.score}/100</i></div><div class="k">Status <i>${t.tier}</i></div><div class="k">Sektor kerajaan <i>${t.gov} lokasi</i></div><div class="k">Perodua <i>${t.per||0} cawangan</i></div><div class="k">Proton <i>${t.pro||0} outlet</i></div>`+(dd.inc?`<div class="k">Pendapatan penengah <i>RM${fmt(dd.inc)}</i></div>`:'')+(dd.dens?`<div class="k">Kepadatan <i>${fmt(dd.dens)}/km²</i></div>`:'')}}
   const a=AG.get(key[level](f)), p=popOf(f), U=DS[ds].unit;
@@ -389,7 +393,8 @@ function tipHTML(f){
 
 function legend(max,dmax,models,pMax){
   const L=document.getElementById('legend'), U=DS[ds].unit;
-  if(mode==='prog') L.innerHTML=`<span class="lbl">Booking dari aktiviti luar · ${PG.tempoh||''}</span><div class="ramp" style="background:linear-gradient(90deg,${css('--pg0')},${css('--pg1')})"></div><div class="ramp-l"><span>0</span><span>${fmt(pMax)}</span></div><div class="sw"><span>Bulatan = booking · label = bil aktiviti</span><span>Kelabu = belum ada aktiviti</span></div>`;
+  if(mode==='fun') L.innerHTML=`<span class="lbl">Registration ikut alamat customer · ${FN.tempoh||''}</span><div class="ramp" style="background:linear-gradient(90deg,${css('--lo')},${css('--hi')})"></div><div class="ramp-l"><span>0</span><span>${fmt(pMax)}</span></div><div class="sw"><span>Bulatan = registration · label = booking</span><span>Kelabu = tiada customer</span></div>`;
+  else if(mode==='prog') L.innerHTML=`<span class="lbl">Booking dari aktiviti luar · ${PG.tempoh||''}</span><div class="ramp" style="background:linear-gradient(90deg,${css('--pg0')},${css('--pg1')})"></div><div class="ramp-l"><span>0</span><span>${fmt(pMax)}</span></div><div class="sw"><span>Bulatan = booking · label = bil aktiviti</span><span>Kelabu = belum ada aktiviti</span></div>`;
   else if(mode==='target') L.innerHTML=`<span class="lbl">Skor sasaran conquer · Kelantan</span><div class="ramp" style="background:linear-gradient(90deg,${['--g0','--g1','--g2','--g3','--g4'].map(css).join(',')})"></div><div class="ramp-l"><span>Pantau</span><span>Kedua</span><span>Utama</span></div><div class="sw"><span><i class="dot" style="background:var(--jm)"></i>JM (kita)</span><span><i class="dot" style="background:var(--px)"></i>Proton</span><span><i class="dot" style="background:var(--pd)"></i>Perodua</span><span><i class="dot" style="background:var(--gv);transform:rotate(45deg)"></i>Kerajaan</span><span><i class="dot" style="border:2px solid var(--g4);background:none;border-radius:50%"></i>Sasaran utama (OP)</span><span><i class="dot" style="background:none;border-top:2px dashed var(--jm);border-radius:0;height:0;width:14px"></i>Laluan dari markas</span><span><i class="dot" style="background:var(--ps);border-radius:2px"></i>Pasar pagi/minggu</span><span><i class="dot" style="background:rgba(124,255,107,.35);border:1px solid var(--ps);border-radius:2px"></i>Pasar harian</span><span><i class="dot" style="background:var(--pm);border-radius:2px"></i>Pasar malam</span></div>`;
   else if(mode==='radar') L.innerHTML=`<span class="lbl">Intensiti customer · radar</span><div class="ramp" style="background:linear-gradient(90deg,${['--r1','--r2','--r3','--r4','--r5','--r6','--r7'].map(css).join(',')})"></div><div class="ramp-l"><span>Rendah</span><span>Sederhana</span><span>Lebat</span><span>${fmt(max)}</span></div>`;
   else if(mode==='cust'&&level==='negeri') L.innerHTML=`<span class="lbl">Setiap negeri warna sendiri · lebih pekat = lebih ramai</span><div class="sw">${models.st.map(k=>`<span><i class="dot" style="background:${stCol(k).formatHex()}"></i>${NAMA[k]}</span>`).join('')}</div>`;
@@ -407,7 +412,7 @@ function opsMap(lv){const src=lv==='daerah'?TG.D:TG.N;const m=new Map();Object.e
 function draw(){
   if(mode==='dens'&&level!=='daerah')setLevel('daerah');
   if(mode==='target'&&level==='negeri')setLevel('daerah');
-  if(mode==='prog'&&level!=='daerah')setLevel('daerah');
+  if((mode==='prog'||mode==='fun')&&level!=='daerah')setLevel('daerah');
   const rows=filt(), feats=G[level].features; AG=agg(rows);
   const max=Math.max(1,...[...AG.values()].map(a=>a.n));
   const land=css('--land');
@@ -415,9 +420,11 @@ function draw(){
   const dv=Object.values(POP.d).map(p=>p.dens), dext=[d3.min(dv),d3.max(dv)];
   const dCol=d3.scaleSequentialLog(TEMP()).domain(dext); const rCol=RAMP(); const tOf=n=>Math.sqrt(n/max);
   const gCol=TGC();
-  const pMax=Math.max(1,...Object.values(PG.D).map(g=>g.b)), pCol=d3.scaleSequentialSqrt(d3.interpolateRgb(css('--pg0'),css('--pg1'))).domain([0,pMax]);
+  const fMax=Math.max(1,...Object.entries(FN.D).filter(e=>!/^LUAR|^\?/.test(e[0])).map(e=>e[1].r)), fCol=d3.scaleSequentialSqrt(d3.interpolateRgb(css('--lo'),css('--hi'))).domain([0,fMax]);
+  const pMax=mode==='fun'?fMax:Math.max(1,...Object.values(PG.D).map(g=>g.b)), pCol=d3.scaleSequentialSqrt(d3.interpolateRgb(css('--pg0'),css('--pg1'))).domain([0,pMax]);
   const fillOf=f=>{const k=key[level](f),a=AG.get(k);
     if(mode==='target'){const t=tgOf(f);return t?gCol(t.score/100):land}
+    if(mode==='fun'){const g=FN.D[k];return g&&g.r?fCol(g.r):land}
     if(mode==='prog'){const g=PG.D[k];if(!g)return land;const c=d3.color(pCol(g.b));c.opacity=.35+.55*Math.sqrt(g.b/pMax);return c.formatRgb()}
     if(mode==='radar'){if(!a)return land;const c=d3.color(rCol(tOf(a.n)));c.opacity=.16+.22*tOf(a.n);return c.formatRgb()}
     if(level==='negeri'&&mode==='cust'){if(!a)return land;const c=stCol(k);c.opacity=.3+.7*Math.sqrt(a.n/max);return c.formatRgb()}
@@ -454,15 +461,15 @@ function draw(){
     .each(f=>{if(!BW.has(f)){const b=path.bounds(f);BW.set(f,b[1][0]-b[0][0])}})
     .attr('x',f=>path.centroid(f)[0]).attr('y',f=>path.centroid(f)[1]).text(nameOf[level]);
 
-  const bd=(mode==='dens'||mode==='target')?[]:mode==='prog'?feats.map(f=>{const g=PG.D[key[level](f)];return {f,a:g?{n:g.b,pg:g,top:[['']]}:null,c:path.centroid(f)}}).filter(d=>d.a&&isFinite(d.c[0])):feats.map(f=>({f,a:AG.get(key[level](f)),c:path.centroid(f)})).filter(d=>d.a&&isFinite(d.c[0]));
-  const rS=mode==='prog'?d3.scaleSqrt().domain([0,pMax]).range([10,24]):d3.scaleSqrt().domain([1,max]).range([10,24]);
+  const bd=(mode==='dens'||mode==='target')?[]:mode==='fun'?feats.map(f=>{const g=FN.D[key[level](f)];return {f,a:g&&g.r?{n:g.r,fn:g,top:[['']]}:null,c:path.centroid(f)}}).filter(d=>d.a&&isFinite(d.c[0])):mode==='prog'?feats.map(f=>{const g=PG.D[key[level](f)];return {f,a:g?{n:g.b,pg:g,top:[['']]}:null,c:path.centroid(f)}}).filter(d=>d.a&&isFinite(d.c[0])):feats.map(f=>({f,a:AG.get(key[level](f)),c:path.centroid(f)})).filter(d=>d.a&&isFinite(d.c[0]));
+  const rS=mode==='prog'||mode==='fun'?d3.scaleSqrt().domain([0,pMax]).range([10,24]):d3.scaleSqrt().domain([1,max]).range([10,24]);
   const g=gBadge.selectAll('g.badge').data(bd,d=>key[level](d.f));
   g.exit().remove();
   const ge=g.enter().append('g').attr('class','badge');ge.append('circle');ge.append('text').attr('class','n');ge.append('text').attr('class','mt');
   ge.merge(g).classed('st',mode==='radar').each(function(d){const s=d3.select(this),r=rS(d.a.n)*(mode==='radar'?.85:1);
-    s.select('circle').attr('r',r).style('stroke',mode==='radar'?rCol(tOf(d.a.n)):null).style('fill',mode==='prog'?css('--pgb'):level==='negeri'&&mode==='cust'?stCol(key.negeri(d.f),.34).formatHex():mcol(d.a.top[0][0]));
+    s.select('circle').attr('r',r).style('stroke',mode==='radar'?rCol(tOf(d.a.n)):null).style('fill',mode==='fun'?css('--hi'):mode==='prog'?css('--pgb'):level==='negeri'&&mode==='cust'?stCol(key.negeri(d.f),.34).formatHex():mcol(d.a.top[0][0]));
     s.select('.n').text(fmt(d.a.n));
-    s.select('.mt').attr('y',r+3).text(mode==='prog'?d.a.pg.n+' aktiviti':d.a.top[0][0]);});
+    s.select('.mt').attr('y',r+3).text(mode==='fun'?fmt(d.a.fn.b)+' bkg':mode==='prog'?d.a.pg.n+' aktiviti':d.a.top[0][0]);});
   // target rings on top-5 areas
   const tg=mode==='target'?feats.map(f=>({f,t:tgOf(f),c:path.centroid(f)})).filter(d=>d.t&&isFinite(d.c[0])&&d.t.tier==='Sasaran utama'):[];
   const gt=gTgt.selectAll('g.tgt').data(tg,d=>key[level](d.f));gt.exit().remove();
@@ -476,7 +483,7 @@ function draw(){
   const rt=mode==='target'&&level==='daerah'&&HQ.length?tg.map(d=>{const h=HQ.slice().sort((a,b)=>Math.hypot(a[0]-d.c[0],a[1]-d.c[1])-Math.hypot(b[0]-d.c[0],b[1]-d.c[1]))[0];return {d,h}}).filter(x=>Math.hypot(x.h[0]-x.d.c[0],x.h[1]-x.d.c[1])>4):[];
   gRoute.selectAll('path.route').data(rt,x=>key[level](x.d.f)).join('path').attr('class','route').attr('d',({d,h})=>{const [x0,y0]=h,[x1,y1]=d.c,mx=(x0+x1)/2,my=(y0+y1)/2,dx=x1-x0,dy=y1-y0;return `M${x0},${y0}Q${mx-dy*.18},${my+dx*.18} ${x1},${y1}`});
   // pins: Perodua + kerajaan
-  const pins=mode==='prog'?[]:[...(tgX.checked?TG.pro.map(o=>({o,k:o.jm?'j':'x'})):[]),...(tgP.checked?TG.per.map(o=>({o,k:'p'})):[]),...(tgG.checked?TG.gov.map(o=>({o,k:'g'})):[]),...(tgM.checked&&TG.pasar?TG.pasar.map(o=>({o,k:'m'})):[])].map(d=>({...d,p:proj([d.o.lon,d.o.lat])}));
+  const pins=(mode==='prog'||mode==='fun')?[]:[...(tgX.checked?TG.pro.map(o=>({o,k:o.jm?'j':'x'})):[]),...(tgP.checked?TG.per.map(o=>({o,k:'p'})):[]),...(tgG.checked?TG.gov.map(o=>({o,k:'g'})):[]),...(tgM.checked&&TG.pasar?TG.pasar.map(o=>({o,k:'m'})):[])].map(d=>({...d,p:proj([d.o.lon,d.o.lat])}));
   const gp=gPin.selectAll('g.pin').data(pins,d=>d.k+d.o.n);gp.exit().remove();
   const gpe=gp.enter().append('g').attr('class','pin');
   gpe.each(function(d){const s=d3.select(this);
@@ -503,6 +510,7 @@ function draw(){
   rescale(d3.zoomTransform(svg.node()).k);
   if(mode==='target'){panelTarget();return}
   if(mode==='prog'){panelProg();return}
+  if(mode==='fun'){panelFun();return}
   panel(rows);
 
 }
@@ -699,6 +707,43 @@ function panelTarget(){
 }
 
 
+
+const BLN=['','Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+const pct=(a,b)=>b?Math.round(a/b*100)+'%':'–';
+function panelFun(){
+  const p=document.getElementById('panel'), T=FN.tot||{};
+  const E=Object.entries(FN.D).filter(e=>!/^LUAR|^\?/.test(e[0])).sort((a,b)=>b[1].r-a[1].r);
+  const LU=Object.entries(FN.D).filter(e=>/^LUAR/.test(e[0])), UN=FN.D['?']||{p:0,b:0};
+  const sel=selected&&selected.level==='daerah'?selected.f:null;
+  const nm=k=>{const f=featByKey.daerah.get(k);return f?nameOf.daerah(f):k.split('|')[1]};
+  const bar=(g,mx)=>`<div class="fb"><i style="width:${Math.max(2,g.p/mx*100)}%;background:var(--lo)"></i><i style="width:${Math.max(2,g.b/mx*100)}%;background:var(--pg1)"></i><i style="width:${Math.max(2,g.r/mx*100)}%;background:var(--hi)"></i></div>`;
+  let h='';
+  if(!sel){
+    const mx=Math.max(1,...E.map(e=>e[1].p));
+    h+=`<div><h2>🎯 Funnel customer ikut kawasan</h2><div class="sub">JM KB · ${FN.tempoh} · Prospek → Booking → Registration</div></div>
+    <div class="tiles"><div class="tile"><small>Prospek</small><b>${fmt(T.p)}</b><em>${fmt(T.p-UN.p)} ada lokasi</em></div><div class="tile"><small>Booking</small><b>${fmt(T.b)}</b><em>tolak ${fmt(T.bc)} CNL</em></div><div class="tile"><small>Registration</small><b>${fmt(T.r)}</b><em>ikut alamat JPJ</em></div></div>
+    <div><h3>Ikut daerah · klik untuk detail</h3><div class="cards">${E.map(([k,g])=>`<div class="card" data-k="${k}" tabindex="0"><div class="t"><b>${nm(k)}</b><span>${fmt(g.r)} reg</span></div>${bar(g,mx)}<div class="chips"><span><b>${fmt(g.p)}</b> prospek</span><span><b>${fmt(g.b)}</b> booking</span><span><b>${fmt(g.r)}</b> reg</span><span>${pct(g.r,T.r)} dari jumlah reg</span></div><div class="chips"><span>${g.towns.slice(0,4).map(t=>t[0]+' '+t[1]).join(' · ')}</span></div></div>`).join('')}</div></div>
+    <div><h3>Luar kawasan & tiada lokasi</h3><table class="evt"><thead><tr><th>Kawasan</th><th></th><th title="Prospek">P</th><th title="Booking">B</th><th title="Registration">R</th></tr></thead><tbody>${LU.map(([k,g])=>`<tr><td>${k.split('|')[1]}</td><td><small>${g.towns.slice(0,3).map(t=>t[0]).join(', ')}</small></td><td>${fmt(g.p)}</td><td>${fmt(g.b)}</td><td>${fmt(g.r)}</td></tr>`).join('')}<tr><td>Belum ada lokasi</td><td><small>prospek/booking belum register & bukan dari event</small></td><td>${fmt(UN.p)}</td><td>${fmt(UN.b)}</td><td>–</td></tr></tbody></table></div>`;
+  }else{
+    const k=key.daerah(sel), g=FN.D[k];
+    if(!g)h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">Tiada prospek, booking atau registration JM KB dikesan di daerah ini (${FN.tempoh}).</div></div>`;
+    else{
+      const ms=Object.keys(g.mon).map(Number).sort((a,b)=>a-b), mm=Math.max(1,...ms.map(m=>g.mon[m][0]));
+      h+=`<div><h2>${nameOf.daerah(sel)}</h2><div class="sub">JM KB · ${FN.tempoh}</div></div>
+      <div class="tiles"><div class="tile"><small>Prospek</small><b>${fmt(g.p)}</b><em>${fmt(g.pa)} alamat · ${fmt(g.pe)} event</em></div><div class="tile"><small>Booking</small><b>${fmt(g.b)}</b><em>${pct(g.b,g.p)} dari prospek</em></div><div class="tile"><small>Registration</small><b>${fmt(g.r)}</b><em>${pct(g.r,T.r)} dari jumlah</em></div></div>
+      <div><h3>Bandar / kawasan customer (registration)</h3><table class="evt"><thead><tr><th>Bandar</th><th></th><th>Reg</th><th>%</th><th></th></tr></thead><tbody>${g.towns.map(t=>`<tr><td colspan="2">${t[0]}</td><td>${t[1]}</td><td>${pct(t[1],g.r)}</td><td></td></tr>`).join('')}</tbody></table></div>
+      <div><h3>Ikut poskod (registration)</h3><table class="evt"><thead><tr><th>Poskod</th><th>Bandar</th><th>Reg</th><th>%</th><th></th></tr></thead><tbody>${(g.pcs||[]).map(t=>`<tr><td>${t[0]}</td><td>${t[1]}</td><td>${t[2]}</td><td>${pct(t[2],g.r)}</td><td></td></tr>`).join('')}</tbody></table></div>
+      <div><h3>Ikut bulan</h3><table class="evt"><thead><tr><th>Bulan</th><th></th><th title="Prospek">P</th><th title="Booking">B</th><th title="Registration">R</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${BLN[m]}</td><td><div class="fb"><i style="width:${Math.max(2,g.mon[m][0]/mm*100)}%;background:var(--lo)"></i></div></td><td>${g.mon[m][0]||'–'}</td><td>${g.mon[m][1]||'–'}</td><td>${g.mon[m][2]||'–'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="note"><b>Model teratas (reg):</b> ${g.mdl.map(x=>x[0]+' '+x[1]).join(' · ')}</div>`;
+    }
+    h+='<button type="button" class="btn" id="clr">Kembali ke semua daerah</button>';
+  }
+  h+=`<div class="src">Sumber: DMS JM KB — Prospect List & Retail Order (${FN.tempoh}) dan Car Owners & Vehicles (alamat registration JPJ), dikemas kini ${FN.tarikh}. Kawasan ikut alamat registration; prospek/booking yang belum register diletak ikut daerah venue event (jika dari event). Booking = order 2026 tolak CNL. Market share perlukan TIV ikut daerah dari state office.</div>`;
+  p.innerHTML=h;
+  p.querySelectorAll('.card').forEach(el=>{const go=()=>{const f=featByKey.daerah.get(el.dataset.k);if(!f)return;selected={level:'daerah',f};zoomTo([f],0.7);draw()};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter')go()})});
+  const c=document.getElementById('clr');if(c)c.onclick=()=>{selected=null;zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);draw()};
+  document.getElementById('crumb').textContent=['Funnel YTD',sel?nameOf.daerah(sel):null].filter(Boolean).join(' › ');
+}
 const QN=['Q1','Q2','Q3','Okt'];
 const incOf=k=>(PG.inc||{})[k];
 const incTxt=k=>{const v=incOf(k);return v?`RM${fmt(v[2])}`:'—'};
@@ -744,7 +789,7 @@ function setLevel(l){
 }
 document.querySelectorAll('#lvl button').forEach(b=>b.addEventListener('click',()=>{if((mode==='dens'&&b.dataset.l!=='daerah')||(mode==='target'&&b.dataset.l==='negeri'))setMode('radar');setLevel(b.dataset.l);draw()}));
 function setMode(m){mode=m;document.querySelectorAll('#mode button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m))}
-document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>{const was=mode;setMode(b.dataset.m);if(b.dataset.m==='prog'&&was!=='prog'){selected=null;setLevel('daerah');draw();zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);return}if(b.dataset.m==='target'&&ds!=='cust'){fds.value='cust';ds='cust';setDS()}draw();if(b.dataset.m==='target'&&was!=='target')zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9)}));
+document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>{const was=mode;setMode(b.dataset.m);if((b.dataset.m==='prog'||b.dataset.m==='fun')&&was!==b.dataset.m){selected=null;setLevel('daerah');draw();zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9);return}if(b.dataset.m==='target'&&ds!=='cust'){fds.value='cust';ds='cust';setDS()}draw();if(b.dataset.m==='target'&&was!=='target')zoomTo(G.negeri.features.filter(f=>f.properties.state==='KTN'),.9)}));
 tgP.onchange=tgX.onchange=tgG.onchange=tgM.onchange=()=>{gPin.selectAll('g').remove();draw()};
 tgR.onchange=drawTiles;
 fds.onchange=()=>{ds=fds.value;setDS();selected=null;if(ds==='sept'&&level!=='negeri'){setLevel('negeri');if(mode==='dens')setMode('radar')}draw()};
